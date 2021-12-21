@@ -26,9 +26,9 @@ class DyConv(nn.Module):
         super(DyConv, self).__init__()
 
         self.DyConv = nn.ModuleList()
-        self.DyConv.append(conv_func(in_channels, out_channels, 1))
-        self.DyConv.append(conv_func(in_channels, out_channels, 1))
-        self.DyConv.append(conv_func(in_channels, out_channels, 2))
+        self.DyConv.append(conv_func(in_channels, out_channels, 1)) # to map the feature from the next layer in the pyramid
+        self.DyConv.append(conv_func(in_channels, out_channels, 1)) # to map the feature from current layer in the pyramid
+        self.DyConv.append(conv_func(in_channels, out_channels, 2)) # to down sample the feature map (map the feature from the previous layer in the pyramid)
 
         self.AttnConv = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
@@ -66,8 +66,11 @@ class DyConv(nn.Module):
 
             temp_fea = [self.DyConv[1](feature, **conv_args)]
             if level > 0:
+                # the feature from the previous layer, the stride is 2, so the feature 
+                # from the previous feature is down scaled 2 times
                 temp_fea.append(self.DyConv[2](x[feature_names[level - 1]], **conv_args))
             if level < len(x) - 1:
+                # the feature from next layer, up scaled to the size of the current layer size
                 temp_fea.append(F.upsample_bilinear(self.DyConv[0](x[feature_names[level + 1]], **conv_args),
                                                     size=[feature.size(2), feature.size(3)]))
             attn_fea = []

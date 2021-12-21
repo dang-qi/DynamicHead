@@ -40,7 +40,7 @@ class DYReLU(nn.Module):
     def __init__(self, inp, oup, reduction=4, lambda_a=1.0, K2=True, use_bias=True, use_spatial=False,
                  init_a=[1.0, 0.0], init_b=[0.0, 0.0]):
         super(DYReLU, self).__init__()
-        self.oup = oup
+        self.oup = oup # 256
         self.lambda_a = lambda_a * 2
         self.K2 = K2
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
@@ -84,11 +84,11 @@ class DYReLU(nn.Module):
             x_out = x
         b, c, h, w = x_in.size()
         y = self.avg_pool(x_in).view(b, c)
-        y = self.fc(y).view(b, self.oup * self.exp, 1, 1)
+        y = self.fc(y).view(b, self.oup * self.exp, 1, 1) # Nx(C*4)x1x1
         if self.exp == 4:
-            a1, b1, a2, b2 = torch.split(y, self.oup, dim=1)
-            a1 = (a1 - 0.5) * self.lambda_a + self.init_a[0]  # 1.0
-            a2 = (a2 - 0.5) * self.lambda_a + self.init_a[1]
+            a1, b1, a2, b2 = torch.split(y, self.oup, dim=1) # a and b are between 0-1 after hard sigmoid
+            a1 = (a1 - 0.5) * self.lambda_a + self.init_a[0]  # 1.0, a1 is between [0,2]
+            a2 = (a2 - 0.5) * self.lambda_a + self.init_a[1] # a2 is between [-1, 1]
 
             b1 = b1 - 0.5 + self.init_b[0]
             b2 = b2 - 0.5 + self.init_b[1]
